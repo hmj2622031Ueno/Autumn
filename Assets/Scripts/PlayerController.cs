@@ -12,6 +12,8 @@ public class PlayerController : MonoBehaviour
 	int jumpCount = 0;
 	Collider2D playerCollider;
 	SpriteRenderer spriteRenderer;
+	[SerializeField] Collider2D upperGroundCollider1;
+	[SerializeField] Collider2D upperGroundCollider2;
 	bool dropDown = false;
 
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -36,10 +38,9 @@ public class PlayerController : MonoBehaviour
 			}
 		}
 
-		// 右キーアニメーション
-		if(Keyboard.current.rightArrowKey.isPressed)
+		// アニメーション
+		if(jumpCount == 0)
 		{
-			// アニメーション
 			time += Time.deltaTime;
 			if (time > 0.1f)
 			{
@@ -51,35 +52,52 @@ public class PlayerController : MonoBehaviour
 		}
 
 		// 下キー入力で下段へ
-		GameObject ground = GameObject.FindGameObjectWithTag("Ground");
 		if (Keyboard.current.downArrowKey.wasPressedThisFrame)
 		{
-			if(ground != null)
-			{
-				dropDown = true;
-				Collider2D groundCollider = ground.GetComponent<Collider2D>();
-				Physics2D.IgnoreCollision(playerCollider, groundCollider, false);
-			}
+			dropDown = true;
 		}
 
-		// 下段から上段へ
-		if(ground != null)
+		// 上段の当たり判定
+		CheckGround(upperGroundCollider1);
+		CheckGround(upperGroundCollider2);
+		if(dropDown)
 		{
-			Collider2D groundCollider = ground.GetComponent<Collider2D>();
-			float groundY = groundCollider.bounds.max.y;
-			if(transform.position.y <  groundY)
+			bool belowGround1 = playerCollider.bounds.max.y < upperGroundCollider1.bounds.min.y;
+			bool belowGround2 = playerCollider.bounds.max.y < upperGroundCollider2.bounds.min.y;
+			if(belowGround1 && belowGround2)
 			{
-				Physics2D.IgnoreCollision(playerCollider, groundCollider, true);
+				dropDown = false;
 			}
-			else if(!dropDown)
-			{
-				Physics2D.IgnoreCollision(playerCollider, groundCollider, false);
-			}
+		}
+	}
+
+	void CheckGround(Collider2D groundCollider)
+	{
+		if (groundCollider == null)
+		{
+			return;
+		}
+
+		// 下段から上段はすり抜け
+		if (rigid2D.linearVelocity.y > 0)
+		{
+			Physics2D.IgnoreCollision(playerCollider, groundCollider, true);
+		}
+		// 下キー押しですり抜け
+		else if(dropDown)
+		{
+			Physics2D.IgnoreCollision(playerCollider, groundCollider, true);
+		}
+
+		else
+		{
+			Physics2D.IgnoreCollision(playerCollider, groundCollider, false);
 		}
 	}
 
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
 		jumpCount = 0;
+		spriteRenderer.sprite = walkSprites[0];
 	}
 }
